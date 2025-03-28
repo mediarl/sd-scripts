@@ -36,6 +36,12 @@ logger = logging.getLogger(__name__)
 
 
 def cache_to_disk(args: argparse.Namespace) -> None:
+
+    # Print all args
+    logger.info("All args:")
+    for k, v in vars(args).items():
+        logger.info(f"{k}: {v}")
+
     setup_logging(args, reset=True)
     train_util.prepare_dataset_args(args, True)
     train_util.enable_high_vram(args)
@@ -55,11 +61,13 @@ def cache_to_disk(args: argparse.Namespace) -> None:
     assert (
         is_sdxl or is_flux
     ), "Cache text encoder outputs to disk is only supported for SDXL and FLUX models / テキストエンコーダ出力のディスクキャッシュはSDXLまたはFLUXでのみ有効です"
-    assert (
-        is_sdxl or args.weighted_captions is None
-    ), "Weighted captions are only supported for SDXL models / 重み付きキャプションはSDXLモデルでのみ有効です"
+    #assert (
+    #    is_sdxl or args.weighted_captions is None
+    #), "Weighted captions are only supported for SDXL models / 重み付きキャプションはSDXLモデルでのみ有効です"
 
-    set_tokenize_strategy(is_sd, is_sdxl, is_flux, args)
+    #set_tokenize_strategy(is_sd, is_sdxl, is_flux, args)
+    tokenize_strategy = strategy_flux.FluxTokenizeStrategy(512, args.tokenizer_cache_dir)
+    strategy_base.TokenizeStrategy.set_strategy(tokenize_strategy)
 
     # データセットを準備する
     use_user_config = args.dataset_config is not None
@@ -133,6 +141,9 @@ def cache_to_disk(args: argparse.Namespace) -> None:
         )
 
         t5xxl = flux_utils.load_t5xxl(args.t5xxl, None, accelerator.device, disable_mmap=args.disable_mmap_load_safetensors)
+
+        clip_l = clip_l.to(accelerator.device)
+        t5xxl = t5xxl.to(accelerator.device)
 
         if t5xxl.dtype == torch.float8_e4m3fnuz or t5xxl.dtype == torch.float8_e5m2 or t5xxl.dtype == torch.float8_e5m2fnuz:
             raise ValueError(f"Unsupported fp8 model dtype: {t5xxl.dtype}")
