@@ -37,11 +37,6 @@ logger = logging.getLogger(__name__)
 
 def cache_to_disk(args: argparse.Namespace) -> None:
 
-    # Print all args
-    logger.info("All args:")
-    for k, v in vars(args).items():
-        logger.info(f"{k}: {v}")
-
     setup_logging(args, reset=True)
     train_util.prepare_dataset_args(args, True)
     train_util.enable_high_vram(args)
